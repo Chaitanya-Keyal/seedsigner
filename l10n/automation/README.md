@@ -85,8 +85,12 @@ two separate Apps. For testing you can collapse them into one (below).
 Since you control both the upstream fork and the bot account, use a single App:
 
 1. GitHub: Settings, Developer settings, GitHub Apps, New GitHub App.
-   - Permissions: `Contents: Read & write`, `Pull requests: Read & write`,
-     `Metadata: Read`. Webhook: uncheck Active.
+   - Permissions: `Contents: Read & write`, `Workflows: Read & write`,
+     `Pull requests: Read & write`, `Metadata: Read`. Webhook: uncheck Active.
+   - `Workflows: Read & write` is required because the rolling branch pushed to
+     the bot fork is based on the upstream default branch, which contains
+     `.github/workflows/` files; an App token cannot push commits that touch
+     workflow files without it. It is granted only on the bot's own forks.
 2. Generate a private key (downloads a `.pem`) and note the **Client ID** (shown
    on the app's General page; the legacy numeric App ID is deprecated).
 3. Install it on both:
@@ -107,7 +111,7 @@ Create two Apps so the upstream repo never carries `contents:write`:
 | App | Install on | Repository permissions |
 | --- | --- | --- |
 | PR App | the main repo (`SeedSigner/seedsigner`) | `Pull requests: R/W`, `Metadata: R` |
-| Fork App | the bot account's `seedsigner` and `seedsigner-translations` forks | `Contents: R/W`, `Metadata: R` |
+| Fork App | the bot account's `seedsigner` and `seedsigner-translations` forks | `Contents: R/W`, `Workflows: R/W`, `Metadata: R` |
 
 Fill the `L10N_PR_*` secrets from the PR App and the `L10N_FORK_*` secrets from
 the Fork App.
