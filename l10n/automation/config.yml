@@ -83,7 +83,10 @@ repo_config:
   # its private key:
   #
   #   PR role:   pull-requests:write on the main repo; opens the rolling PR.
-  #   Fork role: contents:write on the bot forks; pushes the branch and mirrors .pot.
+  #   Fork role: contents:write + workflows:write on the bot forks; pushes the
+  #              rolling branch (which is based on the upstream default branch and
+  #              therefore carries .github/workflows files, hence workflows:write)
+  #              and mirrors the canonical .pot.
   #
   # For testing, the simplest setup is one GitHub App with both permissions,
   # installed on both your main fork and the okaybro-bot forks, with that same
