@@ -87,10 +87,12 @@ Since you control both the upstream fork and the bot account, use a single App:
 1. GitHub: Settings, Developer settings, GitHub Apps, New GitHub App.
    - Permissions: `Contents: Read & write`, `Workflows: Read & write`,
      `Pull requests: Read & write`, `Metadata: Read`. Webhook: uncheck Active.
-   - `Workflows: Read & write` is required because the rolling branch pushed to
-     the bot fork is based on the upstream default branch, which contains
-     `.github/workflows/` files; an App token cannot push commits that touch
-     workflow files without it. It is granted only on the bot's own forks.
+   - `Workflows: Read & write` is needed only if the bot fork can fall behind
+     upstream: the rolling branch is based on the upstream default branch, so a
+     stale fork makes the push re-introduce `.github/workflows/` files, which an
+     App token cannot write without it. Keeping the bot fork's default branch
+     synced with upstream avoids needing it; grant it for hands-off robustness.
+     Either way it applies only to the bot's own forks, never upstream.
 2. Generate a private key (downloads a `.pem`) and note the **Client ID** (shown
    on the app's General page; the legacy numeric App ID is deprecated).
 3. Install it on both:
