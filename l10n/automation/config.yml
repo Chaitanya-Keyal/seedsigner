@@ -1,0 +1,109 @@
+# SeedSigner localization automation: configuration reference.
+#
+# This file documents the naming conventions and tunable parameters used by the
+# l10n automation workflows. It is not parsed at runtime; the workflows read
+# their real values from GitHub repository variables and secrets (see
+# repo_config below and l10n/automation/README.md). Keeping the documented
+# values here next to the code keeps naming deterministic and prevents drift.
+
+# A rolling stream is a long-lived, single PR that automation keeps updated in
+# place (force-updating one branch and reusing one open PR) instead of opening a
+# new PR on every change. Naming is deterministic so the automation can always
+# find the existing branch, PR, and comment to update.
+streams:
+  messages-pot:
+    description: >-
+      Source-string synchronization. Keeps l10n/messages.pot regenerated from
+      the source on the default branch, proposes the update to the main repo as
+      a rolling PR from the bot fork, and mirrors the canonical messages.pot to
+      the translations bot fork for Transifex source sync.
+
+    # Branch created and force-updated in the bot fork of the main repo.
+    bot_branch: automation/messages-pot
+
+    # Rolling PR opened from <bot_fork>:automation/messages-pot into
+    # <main_repo>:<default_branch>. Located by head ref plus base ref, which is
+    # a native GitHub query, so no marker is needed to find it.
+    pr_title: "l10n: sync messages.pot (source strings)"
+
+    # Single advisory comment maintained on feature PRs. GitHub has no native
+    # "find my comment" query, so the bot finds its previous comment by this
+    # hidden marker (and by the comment being authored by a bot).
+    comment_marker: "<!-- l10n-automation:comment=messages-pot -->"
+
+    # Branch in the translations bot fork that Transifex watches as its source.
+    # The canonical messages.pot is mirrored here.
+    translations_sync_branch: dev
+    translations_pot_path: l10n/messages.pot
+
+# Repository topology. All real values live in GitHub repository variables; this
+# section documents what they mean. The sync workflow no-ops entirely while
+# L10N_BOT_FORK is unset, so it is safe to merge before any bot fork exists.
+#
+# No upstream repo is ever granted contents:write; branch mutation happens only
+# inside bot forks.
+#
+# The same variables describe both topologies, with different values. In
+# testing, Chaitanya-Keyal/seedsigner plays the upstream main repo (set the
+# variables there) and okaybro-bot owns the real forks (same fork network):
+#
+#   L10N_BOT_FORK              prod: <bot>/seedsigner
+#                              test: okaybro-bot/seedsigner
+#   L10N_TRANSLATIONS_REPO     prod: SeedSigner/seedsigner-translations
+#                              test: Chaitanya-Keyal/seedsigner-translations
+#   L10N_TRANSLATIONS_BOT_FORK prod: <bot>/seedsigner-translations
+#                              test: okaybro-bot/seedsigner-translations
+#   L10N_TRANSLATIONS_BRANCH   dev (both)
+#   L10N_TRANSLATIONS_POT_PATH l10n/messages.pot (both)
+repo_config:
+  # GitHub repository variables (Settings, Secrets and variables, Actions, Variables).
+  variables:
+    # Bot-owned fork of the main repo. Rolling messages.pot PRs originate here.
+    # Leave empty to keep the post-merge sync job a no-op.
+    L10N_BOT_FORK: "okaybro-bot/seedsigner"
+
+    # The upstream translations repo (PR and source target). In testing this is
+    # your own fork standing in for SeedSigner/seedsigner-translations.
+    L10N_TRANSLATIONS_REPO: "Chaitanya-Keyal/seedsigner-translations"
+
+    # Bot-owned fork of the translations repo, where the canonical messages.pot
+    # is mirrored. Leave empty to skip the mirror step.
+    L10N_TRANSLATIONS_BOT_FORK: "okaybro-bot/seedsigner-translations"
+
+    # Branch in the translations bot fork that Transifex reads source from.
+    L10N_TRANSLATIONS_BRANCH: "dev"
+
+    # Path of the source .pot inside the translations repo.
+    L10N_TRANSLATIONS_POT_PATH: "l10n/messages.pot"
+
+  # GitHub repository secrets. The bot authenticates as a GitHub App (no
+  # long-lived PATs); the workflow mints short-lived, least-privilege
+  # installation tokens at runtime. Each role uses the App's Client ID
+  # (GitHub's current identifier; the legacy numeric App ID is deprecated) and
+  # its private key:
+  #
+  #   PR role:   pull-requests:write on the main repo; opens the rolling PR.
+  #   Fork role: contents:write on the bot forks; pushes the branch and mirrors .pot.
+  #
+  # For testing, the simplest setup is one GitHub App with both permissions,
+  # installed on both your main fork and the okaybro-bot forks, with that same
+  # Client ID and key in all four secrets. The main repo then nominally has
+  # contents:write, which is acceptable for testing.
+  #
+  # For production, use two separate Apps so the upstream repo is never granted
+  # contents:write; the PR App then carries pull-requests:write only. See
+  # README.md for the full setup.
+  secrets:
+    # PR role: opens and updates the rolling messages.pot PR on the main repo.
+    L10N_PR_CLIENT_ID: ""
+    L10N_PR_PRIVATE_KEY: ""
+
+    # Fork role: pushes the rolling branch and mirrors the canonical .pot.
+    L10N_FORK_CLIENT_ID: ""
+    L10N_FORK_PRIVATE_KEY: ""
+
+# Source-of-truth paths in the main repo. These rarely change.
+paths:
+  pot: l10n/messages.pot
+  extract_command: "python setup.py extract_messages"
+  schema: l10n/automation/schema/review-manifest.schema.json
