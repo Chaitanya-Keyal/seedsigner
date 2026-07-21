@@ -7,6 +7,7 @@ import sys
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from PIL import ImageFont
 from unittest.mock import Mock, patch, MagicMock
 
@@ -116,10 +117,18 @@ seed_24_w_passphrase = Seed(mnemonic=mnemonic_24, passphrase="some-PASS*phrase9"
 
 MULTISIG_WALLET_DESCRIPTOR = """wsh(sortedmulti(1,[22bde1a9/48h/1h/0h/2h]tpubDFfsBrmpj226ZYiRszYi2qK6iGvh2vkkghfGB2YiRUVY4rqqedHCFEgw12FwDkm7rUoVtq9wLTKc6BN2sxswvQeQgp7m8st4FP8WtP8go76/{0,1}/*,[73c5da0a/48h/1h/0h/2h]tpubDFH9dgzveyD8zTbPUFuLrGmCydNvxehyNdUXKJAQN8x4aZ4j6UZqGfnqFrD4NqyaTVGKbvEW54tsvPTK2UoSbCC1PJY8iCNiwTL3RWZEheQ/{0,1}/*))#3jhtf6yx"""
 
+# If the GitHub API is unreachable (offline runner, unauthenticated rate limit), fall
+# back to a pinned release so the run doesn't depend on the network: without this, the
+# `None` values would be mocked into `Version` and crash every locale's splash screen.
+FALLBACK_RELEASE_VERSION_NAME = "v0.8.7"
+FALLBACK_RELEASE_VERSION_TIMESTAMP = datetime(2026, 7, 8, 2, 22, 5)
+
 # Grab the most recent release version info
 (latest_release_version_name, latest_release_version_timestamp) = VersionUtils._fetch_latest_seedsigner_release_tag()
 if not latest_release_version_name or not latest_release_version_timestamp:
-    print("Could not fetch latest release version from GitHub")
+    print(f"Could not fetch latest release version from GitHub; falling back to {FALLBACK_RELEASE_VERSION_NAME}")
+    latest_release_version_name = FALLBACK_RELEASE_VERSION_NAME
+    latest_release_version_timestamp = FALLBACK_RELEASE_VERSION_TIMESTAMP
 
 
 # Wrap QRDisplayScreen's `render_brightness_tip` in a simple View + Screen so we
